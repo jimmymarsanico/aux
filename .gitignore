@@ -1,42 +1,7 @@
-# Xcode
-*.xcodeproj/
-!*.xcodeproj/project.pbxproj
-!*.xcodeproj/xcshareddata/
-*.xcworkspace/
-!*.xcworkspace/contents.xcworkspacedata
-/*.gcno
-**/xcshareddata/WorkspaceSettings.xcsettings
-
-# Build
-build/
-DerivedData/
-*.moved-aside
-*.xcuserstate
-*.xcscmblueprint
-
-# Swift Package Manager
 .build/
 .swiftpm/
-Package.resolved
-
-# macOS
+build/
+dist/
 .DS_Store
-*.dSYM.zip
+*.xcodeproj
 *.dSYM
-
-# Archives
-*.dmg
-*.zip
-
-# IDE
-.idea/
-*.swp
-*~
-
-# Secrets
-*.pem
-*.p12
-
-# Project-specific
-plans/
-todos/

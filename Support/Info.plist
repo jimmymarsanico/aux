@@ -3,30 +3,34 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>AudioToggle</string>
+	<string>Aux</string>
 	<key>CFBundleExecutable</key>
-	<string>AudioToggle</string>
+	<string>Aux</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.barcartcapital.AudioToggle</string>
+	<string>com.jimmymarsanico.Aux</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>AudioToggle</string>
+	<string>Aux</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>2.0.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>14.0</string>
+	<string>13.0</string>
 	<key>LSUIElement</key>
 	<true/>
-	<key>NSHighResolutionCapable</key>
-	<true/>
-	<key>NSUserNotificationAlertStyle</key>
-	<string>alert</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 Jimmy Marsanico. MIT License.</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
 </dict>
 </plist>

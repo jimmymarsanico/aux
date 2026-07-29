@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Aux.app
+        run: ./Scripts/build_app.sh
+      - name: Smoke test
+        run: ./build/Aux.app/Contents/MacOS/Aux --smoke-test
