@@ -1,116 +1,99 @@
 #!/usr/bin/env swift
 //
-// Generates Aux's app icon (Support/AppIcon.icns) and the README logo
-// (assets/logo.png). Pure CoreGraphics — no design tools required.
+// Builds Support/AppIcon.icns and assets/logo.png from the master artwork in
+// assets/icon-master.png. The master is located by brightness (anything dark
+// or transparent around it is discarded), scaled onto the standard macOS icon
+// grid, and masked to a clean rounded square with transparent corners.
 //
 // Usage (from the repo root): swift Scripts/make_icon.swift
 
 import AppKit
 import UniformTypeIdentifiers
 
-func color(_ hex: UInt32, _ alpha: CGFloat = 1) -> CGColor {
-    CGColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
-            green: CGFloat((hex >> 8) & 0xFF) / 255,
-            blue: CGFloat(hex & 0xFF) / 255,
-            alpha: alpha)
-}
+let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 
-// All geometry lives in a 1024x1024 canvas and is scaled down per size.
-func drawIcon(into ctx: CGContext, canvas: CGFloat) {
-    ctx.saveGState()
-    let s = canvas / 1024
-    ctx.scaleBy(x: s, y: s)
-
-    // Background: rounded square, deep teal.
-    let bgRect = CGRect(x: 100, y: 100, width: 824, height: 824)
-    ctx.addPath(CGPath(roundedRect: bgRect, cornerWidth: 185, cornerHeight: 185, transform: nil))
-    ctx.clip()
-
-    let gradient = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
-                              colors: [color(0x14B8A6), color(0x0A3A34)] as CFArray,
-                              locations: [0, 1])!
-    ctx.drawLinearGradient(gradient,
-                           start: CGPoint(x: 512, y: 924),
-                           end: CGPoint(x: 512, y: 100),
-                           options: [])
-
-    // The aux plug, tilted toward the upper right, with sound waves
-    // radiating from the tip.
-    ctx.translateBy(x: 470, y: 470)
-    ctx.rotate(by: -0.52) // ~30° clockwise
-
-    drawPlug(ctx)
-    drawWaves(ctx)
-
-    ctx.restoreGState()
-}
-
-func drawPlug(_ ctx: CGContext) {
-    let metal = color(0xE2E8F0)
-    let band = color(0x0F172A)
-    let body = color(0xF97316)
-
-    // Tip (rounded).
-    ctx.setFillColor(metal)
-    ctx.addPath(CGPath(roundedRect: CGRect(x: -34, y: 180, width: 68, height: 120),
-                       cornerWidth: 34, cornerHeight: 34, transform: nil))
-    ctx.fillPath()
-
-    // Insulating bands and the segments between them.
-    ctx.setFillColor(band)
-    ctx.fill(CGRect(x: -34, y: 150, width: 68, height: 34))
-    ctx.setFillColor(metal)
-    ctx.fill(CGRect(x: -34, y: 100, width: 68, height: 54))
-    ctx.setFillColor(band)
-    ctx.fill(CGRect(x: -34, y: 70, width: 68, height: 34))
-
-    // Sleeve.
-    ctx.setFillColor(metal)
-    ctx.fill(CGRect(x: -34, y: -60, width: 68, height: 134))
-
-    // Plastic handle.
-    ctx.setFillColor(body)
-    ctx.addPath(CGPath(roundedRect: CGRect(x: -65, y: -300, width: 130, height: 240),
-                       cornerWidth: 36, cornerHeight: 36, transform: nil))
-    ctx.fillPath()
-
-    // Cable trailing off the handle.
-    ctx.setStrokeColor(color(0x0F172A))
-    ctx.setLineWidth(30)
-    ctx.setLineCap(.round)
-    ctx.beginPath()
-    ctx.move(to: CGPoint(x: 0, y: -290))
-    ctx.addCurve(to: CGPoint(x: 95, y: -390),
-                 control1: CGPoint(x: 5, y: -350),
-                 control2: CGPoint(x: 45, y: -390))
-    ctx.strokePath()
-}
-
-func drawWaves(_ ctx: CGContext) {
-    let center = CGPoint(x: 0, y: 310)
-    let waves: [(radius: CGFloat, width: CGFloat, alpha: CGFloat)] = [
-        (95, 22, 0.95), (160, 20, 0.7), (225, 18, 0.45)
-    ]
-    ctx.setLineCap(.round)
-    for wave in waves {
-        ctx.setStrokeColor(color(0xFFFFFF, wave.alpha))
-        ctx.setLineWidth(wave.width)
-        ctx.beginPath()
-        ctx.addArc(center: center, radius: wave.radius,
-                   startAngle: .pi * 0.25, endAngle: .pi * 0.75, clockwise: false)
-        ctx.strokePath()
+func loadMaster() -> CGImage {
+    let url = root.appendingPathComponent("assets/icon-master.png")
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+          let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+        print("make_icon: could not read assets/icon-master.png")
+        exit(1)
     }
+    return image
 }
+
+/// Finds the bounding box of the artwork square: rows and columns where at
+/// least half the pixels are meaningfully bright (the gradient), as opposed
+/// to the dark or empty surroundings.
+func artworkBounds(of image: CGImage) -> CGRect {
+    let width = image.width
+    let height = image.height
+    guard let ctx = CGContext(data: nil, width: width, height: height,
+                              bitsPerComponent: 8, bytesPerRow: width * 4,
+                              space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+          let buffer = { () -> UnsafeMutablePointer<UInt8>? in
+              ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+              return ctx.data?.assumingMemoryBound(to: UInt8.self)
+          }() else {
+        print("make_icon: could not rasterize master")
+        exit(1)
+    }
+
+    var rowCounts = [Int](repeating: 0, count: height)
+    var colCounts = [Int](repeating: 0, count: width)
+    for y in 0..<height {
+        for x in 0..<width {
+            let p = (y * width + x) * 4
+            let bright = Int(buffer[p]) + Int(buffer[p + 1]) + Int(buffer[p + 2])
+            if buffer[p + 3] >= 200 && bright > 180 {
+                rowCounts[y] += 1
+                colCounts[x] += 1
+            }
+        }
+    }
+
+    guard let firstRow = rowCounts.firstIndex(where: { $0 > width / 2 }),
+          let lastRow = rowCounts.lastIndex(where: { $0 > width / 2 }),
+          let firstCol = colCounts.firstIndex(where: { $0 > height / 2 }),
+          let lastCol = colCounts.lastIndex(where: { $0 > height / 2 }) else {
+        print("make_icon: could not locate the artwork square in the master")
+        exit(1)
+    }
+
+    // Row indices are in bitmap order; the rect below is in CG (y-up) space.
+    return CGRect(x: CGFloat(firstCol),
+                  y: CGFloat(height - 1 - lastRow),
+                  width: CGFloat(lastCol - firstCol + 1),
+                  height: CGFloat(lastRow - firstRow + 1))
+}
+
+let master = loadMaster()
+let bounds = artworkBounds(of: master)
 
 func render(_ pixels: Int) -> CGImage {
-    let ctx = CGContext(data: nil,
-                        width: pixels,
-                        height: pixels,
-                        bitsPerComponent: 8,
-                        bytesPerRow: 0,
+    let ctx = CGContext(data: nil, width: pixels, height: pixels,
+                        bitsPerComponent: 8, bytesPerRow: 0,
                         space: CGColorSpace(name: CGColorSpace.sRGB)!,
                         bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-    drawIcon(into: ctx, canvas: CGFloat(pixels))
+    let size = CGFloat(pixels)
+
+    // Standard macOS icon grid: content square with a transparent margin.
+    let margin = size * 100 / 1024
+    let content = size * 824 / 1024
+    let radius = size * 200 / 1024
+    ctx.addPath(CGPath(roundedRect: CGRect(x: margin, y: margin, width: content, height: content),
+                       cornerWidth: radius, cornerHeight: radius, transform: nil))
+    ctx.clip()
+
+    // Scale the full master so its artwork square lands exactly on the grid.
+    let scaleX = content / bounds.width
+    let scaleY = content / bounds.height
+    ctx.interpolationQuality = .high
+    ctx.draw(master, in: CGRect(x: margin - bounds.minX * scaleX,
+                                y: margin - bounds.minY * scaleY,
+                                width: CGFloat(master.width) * scaleX,
+                                height: CGFloat(master.height) * scaleY))
     return ctx.makeImage()!
 }
 
@@ -121,7 +104,6 @@ func writePNG(_ image: CGImage, to url: URL) {
 }
 
 do {
-    let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     let iconset = root.appendingPathComponent("build/AppIcon.iconset")
     try? FileManager.default.removeItem(at: iconset)
     try FileManager.default.createDirectory(at: iconset, withIntermediateDirectories: true)
@@ -148,10 +130,8 @@ do {
         exit(1)
     }
 
-    try FileManager.default.createDirectory(at: root.appendingPathComponent("assets"), withIntermediateDirectories: true)
     writePNG(render(512), to: root.appendingPathComponent("assets/logo.png"))
-
-    print("Wrote Support/AppIcon.icns and assets/logo.png")
+    print("Wrote Support/AppIcon.icns and assets/logo.png from icon-master.png")
 } catch {
     print("make_icon failed: \(error.localizedDescription)")
     exit(1)

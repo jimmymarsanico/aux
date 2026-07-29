@@ -12,16 +12,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        statusItem.button?.image = StatusIcon.headphones
         menu.delegate = self
         statusItem.menu = menu
 
-        manager.onChange = { [weak self] in self?.refreshStatusItem() }
+        manager.onChange = { [weak self] in self?.refreshToolTip() }
 
         HotkeyCenter.shared.handlers[HotkeyID.cycleOutput] = { [weak self] in self?.switcher.cycleOutput() }
         HotkeyCenter.shared.handlers[HotkeyID.cycleInput] = { [weak self] in self?.switcher.cycleInput() }
         _ = HotkeyStore.shared // loads and registers any saved shortcuts
 
-        refreshStatusItem()
+        refreshToolTip()
 
         // First launch: open Settings so recording a shortcut is the obvious
         // next step, instead of a hotkey that silently does not exist yet.
@@ -119,13 +120,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - Status item
 
-    /// The menu bar icon mirrors where audio is going right now.
-    private func refreshStatusItem() {
-        let symbolName = manager.currentOutput?.outputSymbolName ?? "speaker.slash"
-        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Aux")?
-            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 15, weight: .regular))
-        statusItem.button?.image = image
-
+    /// The icon stays put; the tooltip carries the current routing.
+    private func refreshToolTip() {
         var parts: [String] = []
         if let output = manager.currentOutput { parts.append("Output: \(output.name)") }
         if let input = manager.currentInput { parts.append("Input: \(input.name)") }

@@ -15,7 +15,7 @@
 
 Aux is a tiny macOS menu bar app for people who bounce between MacBook speakers, Bluetooth headphones, and wired audio all day. One keystroke cycles your output device; another cycles your microphone. No digging through System Settings mid-meeting.
 
-The menu bar icon always shows **where your audio is going right now** — a speaker for built-in, headphones or AirPods for Bluetooth, a connector for USB, AirPlay when you're casting.
+Every switch is confirmed by a **volume-style HUD** showing the device you just landed on, and hovering the menu bar icon shows your current output and input.
 
 ## Features
 
@@ -23,7 +23,6 @@ The menu bar icon always shows **where your audio is going right now** — a spe
 - 🎙 **Cycle inputs too** — a second hotkey switches your microphone the same way
 - 🖱 **Or point and click** — the menu lists every output and input; click to switch instantly
 - 🌊 **HUD feedback** — a volume-style overlay confirms each switch, then fades away (no notification permissions, no Notification Center clutter)
-- 🧭 **Status at a glance** — the menu bar icon mirrors your current output device type
 - 🎛 **Choose what cycles** — exclude virtual or rarely-used devices from the rotation in Settings; everything else is included automatically, so new devices just work
 - 🔌 **Live device tracking** — plug in headphones or connect Bluetooth and the menu updates immediately
 - 🚀 **Launch at login**, no Dock icon, zero third-party dependencies
@@ -32,7 +31,7 @@ The menu bar icon always shows **where your audio is going right now** — a spe
 
 1. Download the latest `Aux-x.y.z.dmg` from the [releases page](https://github.com/jimmymarsanico/aux/releases/latest).
 2. Open the DMG and drag **Aux** into **Applications**.
-3. Launch Aux. Settings opens on first run — record your hotkeys and you're done.
+3. Launch Aux — a headphones icon appears in your menu bar, and Settings opens on first run so you can record your hotkeys.
 
 ### "Aux can't be opened" on first launch?
 
@@ -87,7 +86,7 @@ cd aux
 ./Scripts/package_dmg.sh   # → dist/Aux-x.y.z.dmg (optional)
 ```
 
-Then move `build/Aux.app` into `/Applications`. The app icon and logo are generated from code, too: `swift Scripts/make_icon.swift`.
+Then move `build/Aux.app` into `/Applications`. The app icon and logo are derived from the master artwork in `assets/icon-master.png` — regenerate them with `swift Scripts/make_icon.swift`.
 
 ## License
 
